@@ -1,0 +1,72 @@
+-- LocalScript inside StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Replace "Killer" with your NPC's name
+local killer = workspace:WaitForChild("Killer")
+local killerRoot = killer:WaitForChild("HumanoidRootPart")
+
+local camera = workspace.CurrentCamera
+local followDistance = 3
+local cameraOffset = Vector3.new(0, 3, 6)
+
+local following = false
+local enabled = false -- toggle state
+
+-- UI setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CameraToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 120, 0, 40)
+button.Position = UDim2.new(0, 20, 0, 200)
+button.Text = "Camera: OFF"
+button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Parent = screenGui
+
+-- Toggle on button click
+button.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	if enabled then
+		button.Text = "Camera: ON"
+		button.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+	else
+		button.Text = "Camera: OFF"
+		button.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+		-- Reset camera if turned off while following
+		camera.CameraType = Enum.CameraType.Custom
+		following = false
+	end
+end)
+
+-- Camera update loop
+RunService.RenderStepped:Connect(function()
+	if not enabled then return end
+	
+	if killer and killerRoot then
+		local distance = (humanoidRootPart.Position - killerRoot.Position).Magnitude
+
+		if distance <= followDistance then
+			if not following then
+				camera.CameraType = Enum.CameraType.Scriptable
+				following = true
+			end
+
+			local backCFrame = killerRoot.CFrame * CFrame.new(cameraOffset)
+			camera.CFrame = CFrame.new(backCFrame.Position, killerRoot.Position)
+
+		elseif following then
+			camera.CameraType = Enum.CameraType.Custom
+			following = false
+		end
+	end
+end)
